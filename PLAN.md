@@ -78,9 +78,9 @@ Live scan, 32 skills, 10 flagged. Two findings the per-plugin framing would have
 
 ## Open, needs a decision
 
-- **Public repo** — the repo now exists as **private** (`Nyx000/claude-conformance`, created 2026-08-14 with explicit approval); going public remains gated on its own approval. The `_archive` bundle is superseded by the remote as the off-machine copy.
-- **Reddit post** — drafted in conversation on 2026-08-14, unposted. Must not claim novelty: Anthropic published the diagnosis themselves.
-- **`/doctor` overlap** — unresolved. `claude doctor` (CLI) is an installation check only; the in-session `/doctor` claims a "full setup checkup that can also fix issues" and one blog says it proposes CLAUDE.md deletions. **Run `/doctor` and compare before publishing anything**, or the project may duplicate a shipped feature.
+- **Public repo** — ~~gated~~ **PUBLIC as of 2026-08-14, with explicit approval.** README (modest claims, cites Anthropic's own diagnosis, honest "nicer grep" scoping) + MIT license shipped first; scrub confirmed no personal paths or hostnames in the tree. Description + topics set. Listed on the n8than.dev portfolio with a repo link.
+- **Reddit post** — drafted in conversation on 2026-08-14, unposted, still gated on its own approval. Must not claim novelty: Anthropic published the diagnosis themselves.
+- **`/doctor` overlap** — still open. The repo went public on explicit user approval before this was resolved; the README makes no uniqueness claim, which bounds the risk. Run the in-session `/doctor` at some point and record what it actually covers.
 - **Class F** is arguably redundant with the `caveman-light` output style. **Class E is a local extension** — Anthropic states no rule on invocation thresholds — and is marked as such so it can be argued with.
 
 ## Honest scoping note
