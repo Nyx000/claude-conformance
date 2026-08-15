@@ -68,6 +68,8 @@ try {
             }
             $changed = @(); $added = @()
             foreach ($pd in Get-ChildItem $cache -Directory -ErrorAction SilentlyContinue) {
+                # temp_git_* is an in-flight clone, not an installed plugin
+                if ($pd.Name -like 'temp_git_*') { continue }
                 foreach ($plug in Get-ChildItem $pd.FullName -Directory -ErrorAction SilentlyContinue) {
                     # Prefer a version dir. A plugin installed from a git ref has ONLY a
                     # hash dir, and skipping those made live plugins invisible to drift
@@ -78,7 +80,11 @@ try {
                             Sort-Object { try { [version]($_.Name -replace '[^0-9.].*$','') } catch { [version]'0.0.0' } } |
                             Select-Object -Last 1).Name
                     if (-not $now) {
-                        $now = ($dirs | Sort-Object LastWriteTime | Select-Object -Last 1).Name
+                        # Hash-shaped (or literally 'unknown') dirs only — a plugin checked out
+                        # FLAT has ordinary subdirs (src, tests, skills) that would each read as
+                        # a phantom plugin
+                        $now = ($dirs | Where-Object { $_.Name -match '^([0-9a-f]{7,40}|unknown)$' } |
+                                Sort-Object LastWriteTime | Select-Object -Last 1).Name
                     }
                     if (-not $now) { continue }
                     if (-not $was.ContainsKey($plug.Name)) { $added += "$($plug.Name) $now" }
