@@ -24,6 +24,8 @@ Anthropic said this about their own prompt — they cut 80%+ of Claude Code's sy
 
 **Opus 5 first. Refine against it. Only then generalize the adapter to other models.** Do not build a multi-model abstraction before the single-model case is proven.
 
+**Amendment, same day: the machine now runs Fable 5** (`/model` switch, `claude-fable-5[1m]` in settings). The arrangement: **Fable is the auditor, Opus is the audited fleet** — the cavecrew agents (`lead`, `worker-x`, `reviewer`) still run Opus 5, so the doctrine's consumers are real. Anthropic publishes **no** Fable 5 prompting guidance (announcement checked 2026-08-14), so `opus-5.md` deliberately matches `fable|mythos` too, with an in-file comment saying to split it the day Fable guidance lands. This is not premature generalization: it is one profile whose match honestly states its coverage.
+
 ## Design decision, 2026-08-14: fix at source, override only where you can't
 
 An override block is a patch over a wound. The model still reads the bad instruction, *then* reads the correction, then reconciles the two — which is precisely the "spending reasoning cycles resolving contradictions" that Anthropic cited when they cut 80% of Claude Code's system prompt. **An override reproduces a weaker version of the problem it fixes, and costs context every session forever.**
@@ -51,19 +53,15 @@ This is also why the "no native model-awareness" finding is the project's spine 
 | `scan-superseded.py` detector | Working, **verified** (see below) | `fieldkit/claude/skills/anthropic-conformance/scripts/` |
 | Per-machine conformance ledger | Working | `fieldkit/claude/CONFORMANCE-{hq,mac}.md` |
 | Staleness hook (model / version / plugin / 90-day triggers) | Working, fired for real twice | `fieldkit/claude/skills/anthropic-conformance/hooks/` |
-| `model-profiles/opus-5.md` | Written, not yet consumed | same skill dir |
-| **SessionStart doctrine injector** | **NOT WRITTEN — resume here** | — |
+| `model-profiles/opus-5.md` | Re-verified under Fable against the live Opus 5 page; match widened to fable/mythos | same skill dir |
+| **SessionStart doctrine injector** | **Written + registered 2026-08-14**; tested match / no-match nudge / settings fallback / display-name alias. End-to-end verify needs a restart | `hooks/inject-model-profile.{ps1,sh}` |
 
 **fieldkit still holds the live, symlinked copy.** Nothing is duplicated into this repo yet, deliberately: a second copy of the same asset is the exact failure this project exists to prevent. Extraction is step 1 below, and it MOVES rather than copies.
 
 ## Next steps
 
 1. **Extract.** Move the skill out of fieldkit into this repo; leave fieldkit consuming it (submodule, or an install step). Resolve which repo owns the symlink target before moving anything.
-2. **Write the SessionStart injector.** Design agreed 2026-08-14:
-   - `model-profiles/<name>.md`, each starting `<!-- match: <regex> -->`
-   - Hook resolves model: stdin `model` field → fallback `settings.json` `model` → if that is an ambiguous alias (`opus[1m]`), cross-check the ledger's recorded `Model audited` alias
-   - First profile whose regex matches wins; **no match emits an "audit needed" nudge rather than silently applying Opus 5 rules**
-   - Plain stdout is sufficient — SessionStart stdout already reaches context (proven by the PCMaintenance and superpowers hooks). JSON `additionalContext` is the documented alternative if escaping a 2 KB markdown blob proves fragile in PowerShell
+2. ~~**Write the SessionStart injector.**~~ **Done 2026-08-14.** As designed, with one simplification: the ledger cross-check for ambiguous aliases was dropped — substring-style match regexes (`(claude-)?(opus|fable|mythos)[- ]?5`) already cover every alias form (`opus[1m]`, `claude-fable-5[1m]`, display names like `Opus 5 (1M context)`), so the extra lookup bought nothing. Registered matcher-less (fires on startup, resume, clear, AND compact) so doctrine survives compaction once CLAUDE.md shrinks to a pointer. `settings.mac.json` gained the registration too, plus the `conformance-check.sh` line that had been live-only on the Mac and never templated.
 3. **Shrink CLAUDE.md** to a pointer once the injector is live, so doctrine has exactly one home.
 4. **Verify injection end-to-end** — needs a restart; confirm a marker string from the profile appears in session context.
 5. **Widen the detector past `skills/`.** It currently scans only `SKILL.md`. Agents (`~/.claude/agents/*.md`) and CLAUDE.md itself are instruction sources too and are unscanned — a real coverage hole, and they are all files we own, so hits there get fixed at source rather than overridden.
