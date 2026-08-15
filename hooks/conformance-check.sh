@@ -22,6 +22,7 @@ field() { sed -n "s/^- \*\*$1:\*\* *//p" "$ledger" | head -1; }
 audited_date=$(field "Last audited")
 audited_ver=$(field "Claude Code" | grep -oE '^[0-9][0-9.]*')
 audited_model=$(field "Model audited")
+audited_ids=$(field "Model ids audited")
 audited_plugins=$(field "Plugins audited")
 
 reasons=""
@@ -31,8 +32,18 @@ add() { reasons="${reasons:+$reasons; }$1"; }
 settings="$HOME/.claude/settings.json"
 if [ -f "$settings" ]; then
   model=$(sed -n 's/.*"model" *: *"\([^"]*\)".*/\1/p' "$settings" | head -1)
-  if [ -n "$model" ] && ! printf '%s' "$audited_model" | grep -qF "$model"; then
-    add "MODEL now '$model' (ledger: '$audited_model') - full re-derivation"
+  # settings.json holds an ALIAS ('opus[1m]'), the prose 'Model audited' line holds a display
+  # name ('Claude Opus 5'). Substring-matching one against the other nudges on every session
+  # after a /model switch that changed nothing about the doctrine. Compare against the explicit
+  # id list instead; fall back to the prose only on an old ledger that lacks the field.
+  if [ -n "$model" ]; then
+    if [ -n "$audited_ids" ]; then
+      if ! printf '%s' "$audited_ids" | tr ',' '\n' | sed 's/^[ `]*//; s/[ `]*$//' | grep -qixF "$model"; then
+        add "MODEL now '$model' (not in audited ids: $audited_ids) - full re-derivation"
+      fi
+    elif ! printf '%s' "$audited_model" | grep -qF "$model"; then
+      add "MODEL now '$model' (ledger: '$audited_model') - full re-derivation"
+    fi
   fi
 fi
 

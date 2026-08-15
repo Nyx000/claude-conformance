@@ -1,5 +1,6 @@
-<!-- match: (claude-)?(opus|fable|mythos)[- ]?5 -->
+<!-- match: ^(claude-)?(opus|fable|mythos)(plan)?([-. ]?5)?(\[.*\])?$ -->
 <!-- profile: Claude Opus 5 | derived 2026-08-14 from platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5, re-verified same day against the live page under a Fable 5 session -->
+<!-- The match is ANCHORED and covers settings.json alias forms (`opus`, `opus[1m]`, `opusplan`, `fable-5[1m]`) as well as full ids (`claude-opus-5[1m]`), because the injector's settings fallback sees the alias, not the id. Anchoring is what keeps a future generation OUT: `claude-opus-6[1m]` does not match, so the hook nudges instead of silently applying stale doctrine. A bare `opus` alias is the one ambiguous case — it tracks whatever Anthropic calls latest, so re-derive on a generation bump rather than trusting the match. -->
 <!-- Fable 5 / Mythos 5 match here deliberately: Anthropic publishes no prompting guidance for them (announcement checked 2026-08-14), so this Opus 5 doctrine is the only vendor reference and applies until one exists. Split into a fable-5 profile the day that changes. -->
 
 ## Model-layer conformance

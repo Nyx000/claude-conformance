@@ -10,7 +10,9 @@
 $ErrorActionPreference = 'Stop'
 
 try {
-    $ledger = Join-Path $HOME '.claude\CONFORMANCE.md'
+    # Per-machine ledger: CONFORMANCE-<host>.md if present, else CONFORMANCE.md
+    $ledger = Join-Path $HOME (".claude\CONFORMANCE-{0}.md" -f $env:COMPUTERNAME)
+    if (-not (Test-Path $ledger)) { $ledger = Join-Path $HOME '.claude\CONFORMANCE.md' }
     if (-not (Test-Path $ledger)) { exit 0 }
 
     $text = Get-Content $ledger -Raw
@@ -18,6 +20,7 @@ try {
     $auditedDate    = [regex]::Match($text, '(?m)^\-\s\*\*Last audited:\*\*\s*(\S+)').Groups[1].Value
     $auditedVersion = [regex]::Match($text, '(?m)^\-\s\*\*Claude Code:\*\*\s*([0-9][0-9.]*)').Groups[1].Value
     $auditedModel   = [regex]::Match($text, '(?m)^\-\s\*\*Model audited:\*\*\s*(.+?)\s*$').Groups[1].Value
+    $auditedIds     = [regex]::Match($text, '(?m)^\-\s\*\*Model ids audited:\*\*\s*(.+?)\s*$').Groups[1].Value
     $auditedPlugins = [regex]::Match($text, '(?m)^\-\s\*\*Plugins audited:\*\*\s*(.+?)\s*$').Groups[1].Value
 
     $reasons = @()
@@ -27,8 +30,20 @@ try {
         $settings = Join-Path $HOME '.claude\settings.json'
         if (Test-Path $settings) {
             $model = (Get-Content $settings -Raw | ConvertFrom-Json).model
-            if ($model -and $auditedModel -notmatch [regex]::Escape($model)) {
-                $reasons += "MODEL now '$model' (ledger: '$auditedModel') - full re-derivation"
+            # settings.json holds an ALIAS ('opus[1m]'), the prose 'Model audited' line holds a
+            # display name ('Claude Opus 5'). Substring-matching one against the other nudges on
+            # every session after a /model switch that changed nothing about the doctrine. Compare
+            # against the explicit id list instead; fall back to the prose only on an old ledger.
+            if ($model) {
+                if ($auditedIds) {
+                    $ids = $auditedIds -split ',' | ForEach-Object { $_.Trim().Trim('`') }
+                    $known = $ids | Where-Object { $_ -and $_.ToLower() -eq $model.ToLower() }
+                    if (-not $known) {
+                        $reasons += "MODEL now '$model' (not in audited ids: $auditedIds) - full re-derivation"
+                    }
+                } elseif ($auditedModel -notmatch [regex]::Escape($model)) {
+                    $reasons += "MODEL now '$model' (ledger: '$auditedModel') - full re-derivation"
+                }
             }
         }
     } catch { }
