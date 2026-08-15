@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Scan every installed skill for instruction classes superseded by Anthropic's
+"""Scan every instruction source — plugin and local skills, agents, output
+styles, and CLAUDE.md itself — for instruction classes superseded by Anthropic's
 current model guidance. Plugin-agnostic by design: it matches on what an
 instruction DOES, never on which plugin ships it.
 
@@ -23,6 +24,9 @@ def roots_for(home):
     return [
         ("plugin", home / ".claude" / "plugins" / "cache"),
         ("local",  home / ".claude" / "skills"),
+        ("agent",  home / ".claude" / "agents"),
+        ("style",  home / ".claude" / "output-styles"),
+        ("claude-md", home / ".claude" / "CLAUDE.md"),
     ]
 
 # Each class traces to a specific line of guidance, or is marked LOCAL where it
@@ -84,6 +88,15 @@ for c in CLASSES:
 
 def skill_files(kind, root):
     if not root.exists():
+        return
+    if kind == "claude-md":  # a single file, not a tree
+        yield {"kind": kind, "plugin": None, "version": None,
+               "skill": "CLAUDE.md", "path": str(root)}
+        return
+    if kind in ("agent", "style"):  # flat dirs of standalone instruction files
+        for p in sorted(root.glob("*.md")):
+            yield {"kind": kind, "plugin": None, "version": None,
+                   "skill": p.stem, "path": str(p)}
         return
     for p in root.rglob("SKILL.md"):
         parts = p.parts
@@ -177,7 +190,7 @@ def main():
             print("     no hits\n")
             continue
         for r, h in rows:
-            who = "%s %s" % (r["plugin"], r["version"]) if r["kind"] == "plugin" else "local"
+            who = "%s %s" % (r["plugin"], r["version"]) if r["kind"] == "plugin" else r["kind"]
             print("     %-26s %-32s :%-4s %s" % (who, r["skill"], h["line"], h["text"]))
         print()
 
