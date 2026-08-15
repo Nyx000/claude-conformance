@@ -1,0 +1,67 @@
+# claude-conformance
+
+A model-conformance layer for Claude Code: keeps local instructions (CLAUDE.md, skills, plugins) aligned with the model actually in use.
+
+Split out of `fieldkit` on 2026-08-14 because it is not machine-provisioning — it is a tool with its own audience.
+
+## Why it exists
+
+**Claude Code has no model-awareness mechanism for plugins.** Verified against the docs 2026-08-14:
+
+| Mechanism | Model-aware? |
+|---|---|
+| `plugin.json` | No compatibility / minimum-model / target-model field |
+| Skill frontmatter | None. `disable-model-invocation` controls *who* invokes, not which model |
+| Interpolation | `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}`, `${CLAUDE_PROJECT_DIR}`, env vars, `${user_config.*}` — no model variable, no `$CLAUDE_MODEL` |
+| `InstructionsLoaded` hook | Fires *after* load; "output and exit code are ignored" — cannot filter or correct |
+| `SessionStart` hook | **The only** hook receiving `model`, and "not guaranteed to be present". Can return `additionalContext` |
+
+So every plugin ships one instruction set for every model, forever, and **user precedence is the only correction point the platform has.** That is the durable problem. Opus 5 is the occasion, not the scope.
+
+Anthropic said this about their own prompt — they cut 80%+ of Claude Code's system prompt for Opus 5, stating they "were overconstraining Claude Code, both through our system prompt and in our CLAUDE.md files and skills". The diagnosis is public. What is not covered anywhere found so far: **measuring which installed plugins still carry the superseded instructions.**
+
+## Scope decision, 2026-08-14
+
+**Opus 5 first. Refine against it. Only then generalize the adapter to other models.** Do not build a multi-model abstraction before the single-model case is proven.
+
+## State
+
+| Piece | Status | Lives at |
+|---|---|---|
+| Six superseded instruction classes (A–F) | Working, in use on both machines | `fieldkit/claude/CLAUDE.{hq,mac}.md` |
+| `scan-superseded.py` detector | Working, **verified** (see below) | `fieldkit/claude/skills/anthropic-conformance/scripts/` |
+| Per-machine conformance ledger | Working | `fieldkit/claude/CONFORMANCE-{hq,mac}.md` |
+| Staleness hook (model / version / plugin / 90-day triggers) | Working, fired for real twice | `fieldkit/claude/skills/anthropic-conformance/hooks/` |
+| `model-profiles/opus-5.md` | Written, not yet consumed | same skill dir |
+| **SessionStart doctrine injector** | **NOT WRITTEN — resume here** | — |
+
+**fieldkit still holds the live, symlinked copy.** Nothing is duplicated into this repo yet, deliberately: a second copy of the same asset is the exact failure this project exists to prevent. Extraction is step 1 below, and it MOVES rather than copies.
+
+## Next steps
+
+1. **Extract.** Move the skill out of fieldkit into this repo; leave fieldkit consuming it (submodule, or an install step). Resolve which repo owns the symlink target before moving anything.
+2. **Write the SessionStart injector.** Design agreed 2026-08-14:
+   - `model-profiles/<name>.md`, each starting `<!-- match: <regex> -->`
+   - Hook resolves model: stdin `model` field → fallback `settings.json` `model` → if that is an ambiguous alias (`opus[1m]`), cross-check the ledger's recorded `Model audited` alias
+   - First profile whose regex matches wins; **no match emits an "audit needed" nudge rather than silently applying Opus 5 rules**
+   - Plain stdout is sufficient — SessionStart stdout already reaches context (proven by the PCMaintenance and superpowers hooks). JSON `additionalContext` is the documented alternative if escaping a 2 KB markdown blob proves fragile in PowerShell
+3. **Shrink CLAUDE.md** to a pointer once the injector is live, so doctrine has exactly one home.
+4. **Verify injection end-to-end** — needs a restart; confirm a marker string from the profile appears in session context.
+5. Then, and only then, generalize: a second profile for another model.
+
+## Verification done so far
+
+Detector fixture test (`--root` exists for this): a synthetic skill carrying one line per class produced **all six — zero false negatives**; an ordinary synthetic skill produced **nothing — zero false positives**. Known FP rate on the real tree: 1 of 10 flagged files (`cavecrew:47` matches class A on the text of its own fix).
+
+Live scan, 32 skills, 10 flagged. Two findings the per-plugin framing would have missed: **microsoft-docs carries class F** (a second vendor), and superpowers `writing-skills:240` instructs *"Always use subagents"* as authoring guidance, propagating the anti-pattern into anything written with it.
+
+## Open, needs a decision
+
+- **Public repo** — not created, not pushed. Publishing is outward-facing and needs explicit approval. Name unchosen.
+- **Reddit post** — drafted in conversation on 2026-08-14, unposted. Must not claim novelty: Anthropic published the diagnosis themselves.
+- **`/doctor` overlap** — unresolved. `claude doctor` (CLI) is an installation check only; the in-session `/doctor` claims a "full setup checkup that can also fix issues" and one blog says it proposes CLAUDE.md deletions. **Run `/doctor` and compare before publishing anything**, or the project may duplicate a shipped feature.
+- **Class F** is arguably redundant with the `caveman-light` output style. **Class E is a local extension** — Anthropic states no rule on invocation thresholds — and is marked as such so it can be argued with.
+
+## Honest scoping note
+
+Charles Jones's version of this advice is one line: grep for "verify", "double-check", "confirm" and delete what you find. The detector is a nicer, testable, classified version of that grep — not a different idea. The parts that are genuinely additive: the class taxonomy with per-class source lines, the per-machine ledger with three verdicts (conform / deliberate override / drift), version-gated overrides, and the measurement across installed plugins.
