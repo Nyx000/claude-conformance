@@ -61,8 +61,12 @@ if [ -d "$cache" ]; then
   for plug in "$cache"/*/*; do
     [ -d "$plug" ] || continue
     name=$(basename "$plug")
-    # Version dirs only — plugin caches also hold git-hash directories
+    # Prefer a version dir. A plugin installed from a git ref has ONLY a hash dir, and
+    # skipping those made live plugins invisible to drift detection entirely (context7,
+    # frontend-design — found 2026-08-15). Fall back to the newest hash dir and track
+    # the hash as the version.
     now=$(ls -1 "$plug" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
+    [ -n "$now" ] || now=$(ls -1t "$plug" 2>/dev/null | head -1)
     [ -n "$now" ] || continue
     was=$(printf '%s' "$audited_plugins" | tr ',' '\n' | awk -v n="$name" '$1==n {print $2; exit}')
     if [ -z "$was" ]; then

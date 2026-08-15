@@ -48,6 +48,9 @@ CLASSES = [
             r"subagent to (verify|double-check|review)", r"proactively after (any|every|each)",
             r"after (any|every|each) substantive", r"(request|dispatch).{0,30}code review.{0,40}(complet|merg)",
             r"before merging to verify",
+            # A standing gate stated without completion/merge wording slipped past the
+            # pattern above ("request code review after every task"), found by fixture 2026-08-15
+            r"review after (any|every|each)",
         ],
     },
     {
@@ -114,6 +117,31 @@ def skill_files(kind, root):
         }
 
 
+def user_enabled(home):
+    """Plugin name -> bool from settings `enabledPlugins` ("name@marketplace": true).
+
+    A cached plugin is not necessarily a loaded one: the cache keeps plugins that were
+    disabled, removed, or scoped to a single project. Instructions in those never reach
+    a session here, so a hit in one is not live drift — it just looks like it.
+
+    Returns None when no settings file declares the key at all, in which case state is
+    unknown and nothing is annotated. Fail-safe by design: this only ever ADDS a label,
+    never hides a hit, because "not enabled for the user" still allows project scope.
+    """
+    out, found = {}, False
+    for f in ("settings.json", "settings.local.json"):
+        try:
+            d = json.loads((pathlib.Path(home) / ".claude" / f).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        ep = d.get("enabledPlugins")
+        if isinstance(ep, dict):
+            found = True
+            for k, v in ep.items():
+                out[k.split("@")[0]] = bool(v)
+    return out if found else None
+
+
 def latest_only(recs):
     """A plugin cache keeps old versions. Only the newest of each plugin is live."""
     def key(v):
@@ -133,6 +161,7 @@ def latest_only(recs):
 
 def scan(home):
     out = []
+    enabled = user_enabled(home)
     for kind, root in roots_for(home):
         for rec in skill_files(kind, root):
             try:
@@ -153,6 +182,8 @@ def scan(home):
                     hits.append({"class": c["id"], "name": c["name"], "line": line_no,
                                  "text": lines[line_no - 1].strip()[:150]})
             rec["hits"] = hits
+            if rec["kind"] == "plugin":
+                rec["enabled"] = None if enabled is None else enabled.get(rec["plugin"], False)
             out.append(rec)
     return latest_only(out)
 
@@ -191,9 +222,15 @@ def main():
             continue
         for r, h in rows:
             who = "%s %s" % (r["plugin"], r["version"]) if r["kind"] == "plugin" else r["kind"]
+            if r.get("enabled") is False:
+                who += " [not user-enabled]"
             print("     %-26s %-32s :%-4s %s" % (who, r["skill"], h["line"], h["text"]))
         print()
 
+    off = sorted({r["plugin"] for r in flagged if r.get("enabled") is False})
+    if off:
+        print("[not user-enabled] = cached but absent from settings `enabledPlugins`: %s." % ", ".join(off))
+        print("Its instructions do not load for the user — check for project-scoped enablement before ruling it live.")
     print("Regexes over-match. A hit is a line to read and rule on, not a defect.")
 
 

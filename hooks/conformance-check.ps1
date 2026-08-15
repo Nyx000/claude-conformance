@@ -62,17 +62,24 @@ try {
         $cache = Join-Path $HOME '.claude\plugins\cache'
         if (Test-Path $cache) {
             $was = @{}
-            foreach ($m in [regex]::Matches($auditedPlugins, '([A-Za-z0-9_.-]+)\s+([0-9][0-9A-Za-z.\-]*)')) {
+            # Version token may be a git hash or the literal 'unknown', not just a semver
+            foreach ($m in [regex]::Matches($auditedPlugins, '([A-Za-z0-9_.-]+)\s+([A-Za-z0-9][0-9A-Za-z.\-]*)')) {
                 $was[$m.Groups[1].Value] = $m.Groups[2].Value
             }
             $changed = @(); $added = @()
             foreach ($pd in Get-ChildItem $cache -Directory -ErrorAction SilentlyContinue) {
                 foreach ($plug in Get-ChildItem $pd.FullName -Directory -ErrorAction SilentlyContinue) {
-                    # Version dirs only — plugin caches also hold git-hash directories
-                    $now = (Get-ChildItem $plug.FullName -Directory -ErrorAction SilentlyContinue |
-                            Where-Object { $_.Name -match '^\d+\.\d+' } |
+                    # Prefer a version dir. A plugin installed from a git ref has ONLY a
+                    # hash dir, and skipping those made live plugins invisible to drift
+                    # detection entirely (context7, frontend-design — found 2026-08-15).
+                    # Fall back to the newest hash dir and track the hash as the version.
+                    $dirs = Get-ChildItem $plug.FullName -Directory -ErrorAction SilentlyContinue
+                    $now = ($dirs | Where-Object { $_.Name -match '^\d+\.\d+' } |
                             Sort-Object { try { [version]($_.Name -replace '[^0-9.].*$','') } catch { [version]'0.0.0' } } |
                             Select-Object -Last 1).Name
+                    if (-not $now) {
+                        $now = ($dirs | Sort-Object LastWriteTime | Select-Object -Last 1).Name
+                    }
                     if (-not $now) { continue }
                     if (-not $was.ContainsKey($plug.Name)) { $added += "$($plug.Name) $now" }
                     elseif ($was[$plug.Name] -ne $now)     { $changed += "$($plug.Name) $($was[$plug.Name]) -> $now" }
