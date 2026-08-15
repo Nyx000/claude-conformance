@@ -24,6 +24,25 @@ Anthropic said this about their own prompt — they cut 80%+ of Claude Code's sy
 
 **Opus 5 first. Refine against it. Only then generalize the adapter to other models.** Do not build a multi-model abstraction before the single-model case is proven.
 
+## Design decision, 2026-08-14: fix at source, override only where you can't
+
+An override block is a patch over a wound. The model still reads the bad instruction, *then* reads the correction, then reconciles the two — which is precisely the "spending reasoning cycles resolving contradictions" that Anthropic cited when they cut 80% of Claude Code's system prompt. **An override reproduces a weaker version of the problem it fixes, and costs context every session forever.**
+
+So: **rewrite the instruction at its source wherever we own the file.** Override only where source editing is structurally impossible.
+
+| Instruction source | Own it? | Approach |
+|---|---|---|
+| `~/.claude/CLAUDE.md` | Yes | Edit at source |
+| `~/.claude/skills/*` (via fieldkit) | Yes | Edit at source — **done**: cavecrew and research rewritten 2026-08-14 |
+| `~/.claude/agents/*` | Yes | Edit at source — **not yet scanned, see next steps** |
+| Plugin skills in `~/.claude/plugins/cache/**` | **No** | Override. The cache is versioned per release and auto-updates; an edit there is silently orphaned the moment the next version lands. Worst failure mode there is: it reverts without telling you |
+
+Escape hatches for the plugin tier, none free: uninstall the plugin, fork it and install from the fork (MIT allows it; costs a rebase per upstream release), or override via precedence. **Override is the default because it is the only one with no ongoing cost.**
+
+This is also why the "no native model-awareness" finding is the project's spine rather than trivia: if plugins could declare model compatibility, or a hook could correct instructions before the model reads them, the override tier would not need to exist at all.
+
+**Consequence for the injector:** the model profile must *replace* the CLAUDE.md block, never sit alongside it. Net session context should end flat or lower. Measure it, don't assume it.
+
 ## State
 
 | Piece | Status | Lives at |
@@ -47,7 +66,9 @@ Anthropic said this about their own prompt — they cut 80%+ of Claude Code's sy
    - Plain stdout is sufficient — SessionStart stdout already reaches context (proven by the PCMaintenance and superpowers hooks). JSON `additionalContext` is the documented alternative if escaping a 2 KB markdown blob proves fragile in PowerShell
 3. **Shrink CLAUDE.md** to a pointer once the injector is live, so doctrine has exactly one home.
 4. **Verify injection end-to-end** — needs a restart; confirm a marker string from the profile appears in session context.
-5. Then, and only then, generalize: a second profile for another model.
+5. **Widen the detector past `skills/`.** It currently scans only `SKILL.md`. Agents (`~/.claude/agents/*.md`) and CLAUDE.md itself are instruction sources too and are unscanned — a real coverage hole, and they are all files we own, so hits there get fixed at source rather than overridden.
+6. **Rewrite, don't just neutralize.** For every source-owned hit, write the Opus-5-native replacement instruction instead of deleting the line. A skill that says nothing about verification is worse than one that says the right thing.
+7. Then, and only then, generalize: a second profile for another model.
 
 ## Verification done so far
 
