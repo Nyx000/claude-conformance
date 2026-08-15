@@ -56,11 +56,13 @@ This is also why the "no native model-awareness" finding is the project's spine 
 | `model-profiles/opus-5.md` | Re-verified under Fable against the live Opus 5 page; match widened to fable/mythos | same skill dir |
 | **SessionStart doctrine injector** | **Written + registered 2026-08-14**; tested match / no-match nudge / settings fallback / display-name alias. End-to-end verify needs a restart | `hooks/inject-model-profile.{ps1,sh}` |
 
-**fieldkit still holds the live, symlinked copy.** Nothing is duplicated into this repo yet, deliberately: a second copy of the same asset is the exact failure this project exists to prevent. Extraction is step 1 below, and it MOVES rather than copies.
+**Extraction done 2026-08-14.** This repo (`Nyx000/claude-conformance`, **private**) IS the skill: `SKILL.md` at the root, `hooks/`, `scripts/`, `model-profiles/`, with `PLAN.md` riding along as inert repo meta. fieldkit consumes it as a **submodule** at `claude/skills/anthropic-conformance` — the exact old path, so no hook, detector, or doc path changed anywhere. `bootstrap.sh` gained a check-then-do submodule init step (fails loudly: an empty skill dir means hooks silently vanish).
+
+**One working copy on hq.** `Documents\Projects\claude-conformance` is a junction into the submodule working tree — the old standalone checkout was deleted after verifying all three refs identical. Edits here are live immediately (skills hot-reload through `~/.claude/skills` → fieldkit → submodule). **Propagation to the Mac:** commit + push here, then bump the submodule pointer in fieldkit (`git -C fieldkit submodule update --remote` + commit + push); the Mac picks it up on `git pull && git submodule update --init`.
 
 ## Next steps
 
-1. **Extract.** Move the skill out of fieldkit into this repo; leave fieldkit consuming it (submodule, or an install step). Resolve which repo owns the symlink target before moving anything.
+1. ~~**Extract.**~~ **Done 2026-08-14** — see above.
 2. ~~**Write the SessionStart injector.**~~ **Done 2026-08-14.** As designed, with one simplification: the ledger cross-check for ambiguous aliases was dropped — substring-style match regexes (`(claude-)?(opus|fable|mythos)[- ]?5`) already cover every alias form (`opus[1m]`, `claude-fable-5[1m]`, display names like `Opus 5 (1M context)`), so the extra lookup bought nothing. Registered matcher-less (fires on startup, resume, clear, AND compact) so doctrine survives compaction once CLAUDE.md shrinks to a pointer. `settings.mac.json` gained the registration too, plus the `conformance-check.sh` line that had been live-only on the Mac and never templated.
 3. **Shrink CLAUDE.md** to a pointer once the injector is live, so doctrine has exactly one home.
 4. **Verify injection end-to-end** — needs a restart; confirm a marker string from the profile appears in session context.
@@ -76,7 +78,7 @@ Live scan, 32 skills, 10 flagged. Two findings the per-plugin framing would have
 
 ## Open, needs a decision
 
-- **Public repo** — not created, not pushed. Publishing is outward-facing and needs explicit approval. Name unchosen.
+- **Public repo** — the repo now exists as **private** (`Nyx000/claude-conformance`, created 2026-08-14 with explicit approval); going public remains gated on its own approval. The `_archive` bundle is superseded by the remote as the off-machine copy.
 - **Reddit post** — drafted in conversation on 2026-08-14, unposted. Must not claim novelty: Anthropic published the diagnosis themselves.
 - **`/doctor` overlap** — unresolved. `claude doctor` (CLI) is an installation check only; the in-session `/doctor` claims a "full setup checkup that can also fix issues" and one blog says it proposes CLAUDE.md deletions. **Run `/doctor` and compare before publishing anything**, or the project may duplicate a shipped feature.
 - **Class F** is arguably redundant with the `caveman-light` output style. **Class E is a local extension** — Anthropic states no rule on invocation thresholds — and is marked as such so it can be argued with.
