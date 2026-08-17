@@ -84,13 +84,20 @@ if [ -d "$cache" ]; then
 fi
 
 # Age — weakest signal, catches silent doc revisions
-if [ -n "$audited_date" ] && command -v python3 >/dev/null 2>&1; then
-  age=$(python3 -c "import datetime
-try:
-    d=datetime.date.fromisoformat('$audited_date'); print((datetime.date.today()-d).days)
-except Exception: print(0)" 2>/dev/null)
-  if [ -n "$age" ] && [ "$age" -gt 90 ] 2>/dev/null; then
-    add "$age days since last audit - periodic"
+# Gating this on python3 made the trigger vanish silently where python3 is absent —
+# stock macOS before the Xcode CLT is fully installed, which bootstrap.sh only REPORTS
+# rather than installs. The ps1 port uses [datetime]::ParseExact and has no such
+# dependency, so one of four documented triggers was dead on one platform only, with no
+# output saying so. date(1) is present everywhere; BSD form first, GNU form as fallback.
+if [ -n "$audited_date" ]; then
+  aud_s=$(date -j -f %Y-%m-%d "$audited_date" +%s 2>/dev/null || date -d "$audited_date" +%s 2>/dev/null)
+  if [ -n "$aud_s" ]; then
+    age=$(( ( $(date +%s) - aud_s ) / 86400 ))
+    if [ "$age" -gt 90 ] 2>/dev/null; then
+      add "$age days since last audit - periodic"
+    fi
+  else
+    add "age check SKIPPED - date(1) could not parse audit date '$audited_date'"
   fi
 fi
 
