@@ -24,6 +24,8 @@ Every URL in the ledger's Source manifest, in one parallel block. **Fetch, do no
 
 Anything you skip gets marked *not fetched* on that row of the manifest, with the date. A silently skipped source reads as coverage.
 
+**Then search the docs site for the model's name** — `prompting-claude-<model>`, `<model> migration guide` — before trusting the manifest as complete. The manifest only knows pages that existed last pass. Anthropic published a Fable 5 prompting page without linking it from the Fable announcement, and this ledger ran Opus 5 doctrine on Fable for twelve days (2026-08-14 → 08-26) because the 08-14 pass checked the announcement and inferred absence. The best-practices page front-loads a section per model that has its own guide; it is the cheapest place to look.
+
 ### 3. Enumerate the local surface
 
 All of it, every pass — drift hides in whichever file you assumed was fine:
