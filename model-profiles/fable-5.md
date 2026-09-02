@@ -1,6 +1,6 @@
-<!-- match: ^(claude-)?(fable|mythos)([-. ]?5)?(\[.*\])?$ -->
+<!-- match: ^(claude-)?(fable|mythos)([-. ]?5([-.][0-9]+)?)?(\[.*\])?$ -->
 <!-- profile: Claude Fable 5 / Mythos 5 | derived 2026-08-26 from platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5 (fetched live), plus /models/fable-5/migration-guide and /build-with-claude/effort §Fable 5 -->
-<!-- Split out of opus-5.md on 2026-08-26, the day Anthropic's Fable page was found. Until then Fable ran on the Opus 5 doctrine; two classes (B, C) differ under Fable and are rewritten below. Anchored match: `fable`, `fable-5[1m]`, `claude-fable-5`, `mythos-5` match; `claude-fable-6` does not and gets the nudge instead. -->
+<!-- Split out of opus-5.md on 2026-08-26, the day Anthropic's Fable page was found. Until then Fable ran on the Opus 5 doctrine; two classes (B, C) differ under Fable and are rewritten below. Anchored match: `fable`, `fable-5[1m]`, `claude-fable-5`, `claude-fable-5-1` (point releases), `mythos-5` match; `claude-fable-6` does not and gets the nudge instead. -->
 
 ## Model-layer conformance
 
