@@ -1,8 +1,16 @@
-# SessionStart hook: inject the conformance doctrine for the model actually in use.
-# Resolves the model (hook stdin JSON `model` field, else settings.json), then prints the
-# first model-profiles/*.md whose first-line `<!-- match: <regex> -->` matches it.
-# stdout reaches session context, so the printed profile IS the doctrine injection.
+# SessionStart / PostModelSwitch hook: inject the conformance doctrine for the model
+# actually in use. Resolves the model (hook stdin JSON `model` or `to_model` field, else
+# ANTHROPIC_MODEL, else settings.json), then prints the first model-profiles/*.md whose
+# first-line `<!-- match: <regex> -->` matches it.
+# stdout reaches session context on both SessionStart and PostModelSwitch (the hooks docs
+# name PostModelSwitch as one of the few events where plain-text stdout becomes context),
+# so the printed profile IS the doctrine injection either way.
 # No match -> a one-line "derive a profile" nudge, never a silently-applied wrong profile.
+# When the model came from the env var or settings.json fallback rather than the session
+# payload, a visible HTML-comment label is prepended so a misfire (payload absent, wrong
+# model pinned) is catchable from inside the session instead of silent (measured
+# 2026-09-16: a Fable 5.1 session with no stdin `model` field fell through to settings.json
+# and got the Opus 5 doctrine with no marker).
 # Always exits 0 — a hook must never block a session start.
 # Windows counterpart to inject-model-profile.sh.
 
@@ -14,20 +22,33 @@ $ErrorActionPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 
 $model = $null
+$modelSource = 'payload'
 try {
     $stdin = [Console]::In.ReadToEnd()
-    if ($stdin) { $model = ($stdin | ConvertFrom-Json).model }
+    if ($stdin) {
+        $obj = $stdin | ConvertFrom-Json
+        $model = $obj.model
+        # PostModelSwitch's payload carries `to_model`, not `model` (SessionStart is the
+        # only event with `model`, per the hooks docs). Both are the session payload
+        # itself, so a hit here is never a fallback and gets no label.
+        if ($model -isnot [string]) { $model = $obj.to_model }
+    }
 } catch {}
-# The sh port extracts a STRING-valued "model" with sed. ConvertFrom-Json would happily
-# hand back an object and stringify it later, so the two ports resolved different values
-# for the same payload. Accept a string or nothing.
+# The sh port extracts a STRING-valued "model"/"to_model" with sed. ConvertFrom-Json
+# would happily hand back an object and stringify it later, so the two ports resolved
+# different values for the same payload. Accept a string or nothing.
 if ($model -isnot [string]) { $model = $null }
 # A run-time override (`claude --model X`, or ANTHROPIC_MODEL) never touches
 # settings.json. Resolving from settings alone injected the PINNED model's doctrine into
 # an overridden session — the silently-applied wrong profile the header says cannot
-# happen. Env sits ahead of settings for exactly that case.
-if (-not $model -and $env:ANTHROPIC_MODEL) { $model = [string]$env:ANTHROPIC_MODEL }
+# happen. Env sits ahead of settings for exactly that case. Both of these ARE fallbacks
+# (the session payload carried nothing usable), so both get the label below.
+if (-not $model -and $env:ANTHROPIC_MODEL) {
+    $model = [string]$env:ANTHROPIC_MODEL
+    $modelSource = 'the ANTHROPIC_MODEL env var'
+}
 if (-not $model) {
+    $modelSource = 'settings.json'
     try {
         $model = (Get-Content (Join-Path $HOME '.claude\settings.json') -Raw | ConvertFrom-Json).model
     } catch {}
@@ -47,6 +68,9 @@ foreach ($f in Get-ChildItem $dir -Filter '*.md' | Sort-Object { $_.Name.ToLower
         $rx = $Matches[1]
         # -match is case-insensitive; the regex covers id and display-name aliases alike
         if ($model -match $rx) {
+            if ($modelSource -ne 'payload') {
+                "<!-- resolved from $modelSource `"$model`": the session payload carried no model. If the session banner names another family, apply model-profiles/$($f.BaseName).md instead and flag it -->"
+            }
             [IO.File]::ReadAllText($f.FullName)
             exit 0
         }
