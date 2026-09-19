@@ -1,10 +1,10 @@
 <!-- match: ^(claude-)?(fable|mythos)([-. ]?5([-.][0-9]+)?)?(\[.*\])?$ -->
-<!-- profile: Claude Fable 5 / Mythos 5 | derived 2026-08-26 from platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5 (fetched live), plus /models/fable-5/migration-guide and /build-with-claude/effort §Fable 5 -->
+<!-- profile: Claude Fable 5 / Mythos 5 | derived 2026-08-26 from platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5 (fetched live), plus /models/fable-5/migration-guide and /build-with-claude/effort §Fable 5 | 5.1 delta 2026-09-19 from /prompt-engineering/prompting-claude-fable-5-1 (fetched live) -->
 <!-- Split out of opus-5.md on 2026-08-26, the day Anthropic's Fable page was found. Until then Fable ran on the Opus 5 doctrine; two classes (B, C) differ under Fable and are rewritten below. Anchored match: `fable`, `fable-5[1m]`, `claude-fable-5`, `claude-fable-5-1` (point releases), `mythos-5` match; `claude-fable-6` does not and gets the nudge instead. -->
 
 ## Model-layer conformance
 
-Derived from Anthropic's guidance for the model in use (Fable 5, audited 2026-08-26). Ledger and sources: `~/.claude/CONFORMANCE.md`.
+Derived from Anthropic's guidance for the model in use (Fable 5, audited 2026-08-26; Fable 5.1 delta 2026-09-19). Ledger and sources: `~/.claude/CONFORMANCE.md`.
 
 **Stated as instruction CLASSES, never as named plugins.** Any skill, plugin, command, or harness text falling in a class below is superseded — whoever ships it, whenever it arrives, **including plugins installed after this was written**. Named examples are illustrative, never the definition. Anthropic's own words on Fable: *"Skills developed for prior models are often too prescriptive for Claude Fable 5 and can degrade output quality. Review and consider removing older instructions if default performance is better."*
 
@@ -24,7 +24,9 @@ Detector: `python3 ~/.claude/skills/anthropic-conformance/scripts/scan-supersede
 
 **Two Fable behaviors worth one local line each, because the harness does not cover them.** (1) *Boundaries:* when the user is describing a problem or thinking aloud, the deliverable is the assessment — report and stop; do not apply the fix until asked, and before any state-changing command check the evidence supports *that* action. (2) *Longer turns:* Fable's single requests run for many minutes at `high`+; that is expected, not a stall — the cavecrew watchdog timings assume it.
 
-**Effort.** `high` is the default and the right default for most work on Fable; `xhigh` only for capability-sensitive tasks; `medium`/`low` for routine, and lower effort on Fable often exceeds `xhigh` on prior models. Effort controls thinking depth, not response length or scope — never raise it to stop over-building, and never lower it to shorten prose.
+**Fable 5.1 delta (2026-09-19).** Anthropic: "Your existing Claude Fable 5 prompts should perform well on Claude Fable 5.1 without changes", so every class above stands. Of the 5.1 page's fixes, two are already in the Claude Code harness prompt and are not restated here: batch independent tool calls in one response, and finish the whole task instead of announcing the next step. Two get one local line each. (3) *Targeted edits:* 5.1 is likelier than 5 to rewrite a whole text file for a small change; edit surgically unless the file is short or most of it is changing. (4) *Mannered prose:* 5.1's prose can run denser, with metaphor and flourish in place of direct statement; when a literal phrase is available, use it, and keep paragraphs short. Fewer progress notes between tool calls is 5.1's default; a quiet stretch is not a stall.
+
+**Effort.** `high` is the default and the right default for most work on Fable; `xhigh` only for capability-sensitive tasks; `medium`/`low` for routine, and lower effort on Fable often exceeds `xhigh` on prior models. On 5.1 the level names do not map to the same thinking volume as on 5, so an effort sweep run on 5 does not carry over; `medium` roughly matches Fable 5 at lower cost, and at `low` 5.1 is "often competitive with Claude Opus and Claude Sonnet models on cost per task while scoring higher" — an eval candidate for cheap lanes, not a default. Effort controls thinking depth, not response length or scope — never raise it to stop over-building, and never lower it to shorten prose.
 
 **Precedence that makes it work:** user instructions (this file) outrank skills, which outrank default behavior. No plugin needs to cooperate.
 
