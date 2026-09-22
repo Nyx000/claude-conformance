@@ -69,7 +69,7 @@ foreach ($f in Get-ChildItem $dir -Filter '*.md' | Sort-Object { $_.Name.ToLower
         # -match is case-insensitive; the regex covers id and display-name aliases alike
         if ($model -match $rx) {
             if ($modelSource -ne 'payload') {
-                "<!-- resolved from $modelSource `"$model`": the session payload carried no model. If the session banner names another family, apply model-profiles/$($f.BaseName).md instead and flag it -->"
+                "<!-- resolved from $modelSource `"$model`": the session payload carried no model, so model-profiles/$($f.BaseName).md follows. If the session banner names another model, apply that model's profile instead and flag it -->"
             }
             [IO.File]::ReadAllText($f.FullName)
             exit 0

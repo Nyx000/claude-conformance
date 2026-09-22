@@ -83,6 +83,17 @@ CLASSES = [
             r"^#+ *(bottom line|key principles|real-world impact)",
         ],
     },
+    {
+        # Fable 5 from 2026-08-26, Opus 5.5 from 2026-09-22. Lived in the profiles
+        # only until the Opus 5.5 pass taught the detector.
+        "id": "G", "source": "Anthropic (Fable 5, Opus 5.5): reasoning reproduction trips the 'reasoning_extraction' refusal",
+        "name": "Reasoning reproduction in response text",
+        "patterns": [
+            r"(show|write out|reproduce|transcribe|echo|narrate|include) (all |the |your )?(full |complete |internal |step-by-step )?(reasoning|thinking|thought process|chain[- ]of[- ]thought)",
+            r"think (out loud|aloud)",
+            r"(reasoning|thinking) (in|into) (the|your) (response|answer|reply|output)",
+        ],
+    },
 ]
 
 for c in CLASSES:

@@ -1,6 +1,7 @@
-<!-- match: ^(claude-)?opus(plan)?([-. ]?5)?(\[.*\])?$ -->
+<!-- match: ^(claude-)?opus[-. ]?5(\[.*\])?$ -->
 <!-- profile: Claude Opus 5 | derived 2026-08-14 from platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5, re-verified 2026-08-26 against the live page (unchanged) -->
 <!-- The match is ANCHORED and covers settings.json alias forms (`opus`, `opus[1m]`, `opusplan`) as well as full ids (`claude-opus-5[1m]`), because the injector's settings fallback sees the alias, not the id. Anchoring is what keeps a future generation OUT: `claude-opus-6[1m]` does not match, so the hook nudges instead of silently applying stale doctrine. A bare `opus` alias is the one ambiguous case — it tracks whatever Anthropic calls latest, so re-derive on a generation bump rather than trusting the match. -->
+<!-- 2026-09-22: the bare aliases (`opus`, `opus[1m]`, `opusplan`) moved to opus-5-5.md, because Claude Code now resolves them to Opus 5.5. This file matches only an explicit Opus 5 id (`claude-opus-5`, `claude-opus-5[1m]`, `opus-5`), for a session pinned to the older model. -->
 <!-- Fable 5 / Mythos 5 matched here from 2026-08-14 to 2026-08-26, while Anthropic published no Fable guidance. They now have their own page and their own profile (fable-5.md, which also sorts first and so wins regardless). Classes B and C differ there. Do not widen this match back. -->
 
 ## Model-layer conformance

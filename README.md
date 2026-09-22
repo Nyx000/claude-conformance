@@ -16,7 +16,7 @@ Claude Code's instruction precedence is: user instructions, then skills, then de
 
 Three pieces:
 
-**`scripts/scan-superseded.py`** scans every instruction source on the machine for six superseded instruction classes, each traceable to a specific line of Anthropic guidance (or explicitly marked as a local extension where it is not). It matches on what an instruction *does*, never on which plugin ships it. A hit is a line to read and rule on, not an automatic defect: the regexes deliberately over-match so nothing slips past.
+**`scripts/scan-superseded.py`** scans every instruction source on the machine for seven superseded instruction classes, each traceable to a specific line of Anthropic guidance (or explicitly marked as a local extension where it is not). It matches on what an instruction *does*, never on which plugin ships it. A hit is a line to read and rule on, not an automatic defect: the regexes deliberately over-match so nothing slips past.
 
 | Class | Superseded pattern | Source |
 |---|---|---|
@@ -26,6 +26,7 @@ Three pieces:
 | D | Re-check / double-check instructions | "avoid instructing re-checks it already performs" |
 | E | Mandatory-invocation thresholds and ceremony | Local extension, marked arguable: Anthropic states no rule here |
 | F | Fixed-template padding in deliverables | "match length to what the task needs; do not pad" |
+| G | Instructions to reproduce internal reasoning in the response | Fable 5 and Opus 5.5: such prompts "can be declined with the `reasoning_extraction` category" |
 
 **`hooks/inject-model-profile.{ps1,sh}`** is a SessionStart hook that resolves the running model and prints the matching doctrine from `model-profiles/` into session context. It fires on startup, resume, clear, and compact, so the doctrine survives compaction. An unrecognized model gets a one-line "derive a profile" nudge rather than silently applied wrong rules.
 
@@ -53,7 +54,15 @@ python3 ~/.claude/skills/anthropic-conformance/scripts/scan-superseded.py
 
 ## Status and honest scoping
 
-The current profile is derived from the Claude Opus 5 prompting guidance and deliberately also matches Fable 5 and Mythos 5, because Anthropic publishes no prompting guidance for those models yet; the profile header says to split it the day that changes. One profile, honestly labeled, rather than a premature multi-model abstraction.
+Three profiles, each derived from Anthropic's prompting page for its model and matched by an anchored regex, so a model with no profile gets a nudge rather than a neighbour's doctrine:
+
+| Profile | Matches | Source |
+|---|---|---|
+| `opus-5-5.md` | `claude-opus-5-5` and the bare `opus` / `opus[1m]` / `opusplan` aliases, which Claude Code resolves to Opus 5.5 | Prompting Claude Opus 5.5, on top of the Opus 5 page it says still applies |
+| `opus-5.md` | an explicit `claude-opus-5` id only | Prompting Claude Opus 5 |
+| `fable-5.md` | Fable and Mythos 5 and their point releases | Prompting Claude Fable 5, with a 5.1 delta |
+
+The profiles differ where the vendor pages do: Fable's guidance says to use subagents frequently and recommends fresh-context verifiers on long runs, while the Opus pages say to keep delegation to large independent tracks.
 
 The simplest version of this idea is a grep for "verify" and "double-check" followed by deleting what you find. The scanner is a nicer, testable, classified version of that grep, not a different idea. The parts that are genuinely additive: the class taxonomy with per-class source lines, the three-verdict ledger, version-gated overrides, and the model-matched injection that survives compaction.
 

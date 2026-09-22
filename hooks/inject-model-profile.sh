@@ -59,7 +59,7 @@ for f in "$dir"/*.md; do
   if printf '%s' "$model" | grep -qiE "$rx"; then
     if [ "$model_source" != "payload" ]; then
       base="$(basename "$f" .md)"
-      echo "<!-- resolved from $model_source \"$model\": the session payload carried no model. If the session banner names another family, apply model-profiles/$base.md instead and flag it -->"
+      echo "<!-- resolved from $model_source \"$model\": the session payload carried no model, so model-profiles/$base.md follows. If the session banner names another model, apply that model's profile instead and flag it -->"
     fi
     cat "$f"
     exit 0

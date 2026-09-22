@@ -27,23 +27,32 @@ try {
 
     # Model drift — the expensive one
     try {
+        # The session payload's full id first. settings.json holds an alias, and an alias can
+        # change meaning under an unchanged file: on 2026-09-22 Claude Code 2.1.280 moved
+        # `opus[1m]` from Opus 5 to Opus 5.5, and this check stayed quiet because the alias was
+        # already in the audited list. The payload carried `claude-opus-5-5[1m]`.
+        $model = $null
+        if ([Console]::IsInputRedirected) {
+            try { $model = ([Console]::In.ReadToEnd() | ConvertFrom-Json).model } catch { }
+            if ($model -isnot [string]) { $model = $null }
+        }
         $settings = Join-Path $HOME '.claude\settings.json'
-        if (Test-Path $settings) {
+        if (-not $model -and (Test-Path $settings)) {
             $model = (Get-Content $settings -Raw | ConvertFrom-Json).model
-            # settings.json holds an ALIAS ('opus[1m]'), the prose 'Model audited' line holds a
-            # display name ('Claude Opus 5'). Substring-matching one against the other nudges on
-            # every session after a /model switch that changed nothing about the doctrine. Compare
-            # against the explicit id list instead; fall back to the prose only on an old ledger.
-            if ($model) {
-                if ($auditedIds) {
-                    $ids = $auditedIds -split ',' | ForEach-Object { $_.Trim().Trim('`') }
-                    $known = $ids | Where-Object { $_ -and $_.ToLower() -eq $model.ToLower() }
-                    if (-not $known) {
-                        $reasons += "MODEL now '$model' (not in audited ids: $auditedIds) - full re-derivation"
-                    }
-                } elseif ($auditedModel -notmatch [regex]::Escape($model)) {
-                    $reasons += "MODEL now '$model' (ledger: '$auditedModel') - full re-derivation"
+        }
+        # The prose 'Model audited' line holds a display name ('Claude Opus 5'). Substring-matching
+        # an id or alias against it nudges on every session after a /model switch that changed
+        # nothing about the doctrine. Compare against the explicit id list instead; fall back to
+        # the prose only on an old ledger.
+        if ($model) {
+            if ($auditedIds) {
+                $ids = $auditedIds -split ',' | ForEach-Object { $_.Trim().Trim('`') }
+                $known = $ids | Where-Object { $_ -and $_.ToLower() -eq $model.ToLower() }
+                if (-not $known) {
+                    $reasons += "MODEL now '$model' (not in audited ids: $auditedIds) - full re-derivation"
                 }
+            } elseif ($auditedModel -notmatch [regex]::Escape($model)) {
+                $reasons += "MODEL now '$model' (ledger: '$auditedModel') - full re-derivation"
             }
         }
     } catch { }

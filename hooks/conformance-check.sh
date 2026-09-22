@@ -19,7 +19,8 @@ ledger="$HOME/.claude/CONFORMANCE-$host.md"
 
 field() { sed -n "s/^- \*\*$1:\*\* *//p" "$ledger" | head -1; }
 
-audited_date=$(field "Last audited")
+# First token only, as the .ps1 port does: the line carries prose after the date
+audited_date=$(field "Last audited" | awk '{print $1}')
 audited_ver=$(field "Claude Code" | grep -oE '^[0-9][0-9.]*')
 audited_model=$(field "Model audited")
 audited_ids=$(field "Model ids audited")
@@ -29,21 +30,28 @@ reasons=""
 add() { reasons="${reasons:+$reasons; }$1"; }
 
 # Model drift — the expensive one
+# The session payload's full id first. settings.json holds an alias, and an alias can change
+# meaning under an unchanged file: on 2026-09-22 Claude Code 2.1.280 moved `opus[1m]` from
+# Opus 5 to Opus 5.5, and this check stayed quiet because the alias was already audited.
+model=""
+if [ ! -t 0 ]; then
+  model=$(cat 2>/dev/null | sed -n 's/.*"model" *: *"\([^"]*\)".*/\1/p' | head -1)
+fi
 settings="$HOME/.claude/settings.json"
-if [ -f "$settings" ]; then
+if [ -z "$model" ] && [ -f "$settings" ]; then
   model=$(sed -n 's/.*"model" *: *"\([^"]*\)".*/\1/p' "$settings" | head -1)
-  # settings.json holds an ALIAS ('opus[1m]'), the prose 'Model audited' line holds a display
-  # name ('Claude Opus 5'). Substring-matching one against the other nudges on every session
-  # after a /model switch that changed nothing about the doctrine. Compare against the explicit
-  # id list instead; fall back to the prose only on an old ledger that lacks the field.
-  if [ -n "$model" ]; then
-    if [ -n "$audited_ids" ]; then
-      if ! printf '%s' "$audited_ids" | tr ',' '\n' | sed 's/^[ `]*//; s/[ `]*$//' | grep -qixF "$model"; then
-        add "MODEL now '$model' (not in audited ids: $audited_ids) - full re-derivation"
-      fi
-    elif ! printf '%s' "$audited_model" | grep -qF "$model"; then
-      add "MODEL now '$model' (ledger: '$audited_model') - full re-derivation"
+fi
+# The prose 'Model audited' line holds a display name ('Claude Opus 5'). Substring-matching an
+# id or alias against it nudges on every session after a /model switch that changed nothing
+# about the doctrine. Compare against the explicit id list instead; fall back to the prose only
+# on an old ledger that lacks the field.
+if [ -n "$model" ]; then
+  if [ -n "$audited_ids" ]; then
+    if ! printf '%s' "$audited_ids" | tr ',' '\n' | sed 's/^[ `]*//; s/[ `]*$//' | grep -qixF "$model"; then
+      add "MODEL now '$model' (not in audited ids: $audited_ids) - full re-derivation"
     fi
+  elif ! printf '%s' "$audited_model" | grep -qF "$model"; then
+    add "MODEL now '$model' (ledger: '$audited_model') - full re-derivation"
   fi
 fi
 
