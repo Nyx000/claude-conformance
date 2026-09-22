@@ -115,6 +115,10 @@ def skill_files(kind, root):
     for p in root.rglob("SKILL.md"):
         parts = p.parts
         plugin = version = None
+        # temp_git_* is an in-flight or abandoned plugin clone, not an installed plugin; the
+        # staleness hook already skipped it, and here it read as a plugin named "skills"
+        if kind == "plugin" and any(x.startswith("temp_git_") for x in parts):
+            continue
         if kind == "plugin":
             try:
                 i = parts.index("cache")
