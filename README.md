@@ -54,10 +54,12 @@ python3 ~/.claude/skills/anthropic-conformance/scripts/scan-superseded.py
 
 ## Status and honest scoping
 
-Three profiles, each derived from Anthropic's prompting page for its model and matched by an anchored regex, so a model with no profile gets a nudge rather than a neighbour's doctrine:
+Five profiles, each derived from Anthropic's prompting page for its model and matched by an anchored regex, so a model with no profile gets a nudge rather than a neighbour's doctrine:
 
 | Profile | Matches | Source |
 |---|---|---|
+| `haiku-5-5.md` | `claude-haiku-5-5` and the bare `haiku` alias, which Claude Code resolves to Haiku 5.5 | Prompting Claude Haiku 5.5 |
+| `sonnet-5-5.md` | `claude-sonnet-5-5` and the bare `sonnet` / `sonnet[1m]` aliases, which Claude Code resolves to Sonnet 5.5 | Prompting Claude Sonnet 5.5, on top of the Sonnet 5 page |
 | `opus-5-5.md` | `claude-opus-5-5` and the bare `opus` / `opus[1m]` / `opusplan` aliases, which Claude Code resolves to Opus 5.5 | Prompting Claude Opus 5.5, on top of the Opus 5 page it says still applies |
 | `opus-5.md` | an explicit `claude-opus-5` id only | Prompting Claude Opus 5 |
 | `fable-5.md` | Fable and Mythos 5 and their point releases | Prompting Claude Fable 5, with a 5.1 delta |
