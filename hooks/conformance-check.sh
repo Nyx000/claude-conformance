@@ -63,30 +63,30 @@ fi
 
 # Plugin drift — ANY plugin, not a named list. A plugin installed after the last
 # audit can ship superseded instruction classes just as easily as an updated one.
-cache="$HOME/.claude/plugins/cache"
-if [ -d "$cache" ]; then
+# Read from installed_plugins.json, not the cache dirs: an uninstall leaves its cache
+# dir behind, so the old directory scan reported removed plugins as installed (A69).
+# awk over Claude Code's pretty-printed file, because jq and python3 may be absent.
+manifest="$HOME/.claude/plugins/installed_plugins.json"
+if [ -f "$manifest" ]; then
   changed=""; added=""
-  for plug in "$cache"/*/*; do
-    [ -d "$plug" ] || continue
-    name=$(basename "$plug")
-    # temp_git_* is an in-flight clone, not an installed plugin
-    case "$(basename "$(dirname "$plug")")" in temp_git_*) continue ;; esac
-    # Prefer a version dir. A plugin installed from a git ref has ONLY a hash dir, and
-    # skipping those made live plugins invisible to drift detection entirely (context7,
-    # frontend-design — found 2026-08-15). Fall back to the newest hash dir and track
-    # the hash as the version.
-    now=$(ls -1 "$plug" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
-    # Hash-shaped (or literally 'unknown') dirs only — a plugin checked out FLAT has
-    # ordinary subdirs (src, tests, skills) that would each read as a phantom plugin
-    [ -n "$now" ] || now=$(ls -1t "$plug" 2>/dev/null | grep -E '^([0-9a-f]{7,40}|unknown)$' | head -1)
-    [ -n "$now" ] || continue
+  # One "name version" line per plugin: the first entry's version, else its short sha
+  pairs=$(awk '
+    function emit() { if (name != "") print name, (ver != "" && ver != "unknown" ? ver : (sha != "" ? substr(sha, 1, 12) : "unknown")) }
+    /^    "[^"]+@[^"]+": \[/ { emit(); match($0, /"[^"@]+@/); name = substr($0, RSTART + 1, RLENGTH - 2); ver = ""; sha = ""; next }
+    name != "" && ver == "" && /"version":/ { match($0, /: "[^"]*"/); ver = substr($0, RSTART + 3, RLENGTH - 4) }
+    name != "" && sha == "" && /"gitCommitSha":/ { match($0, /: "[^"]*"/); sha = substr($0, RSTART + 3, RLENGTH - 4) }
+    END { emit() }' "$manifest")
+  while read -r name now; do
+    [ -n "$name" ] || continue
     was=$(printf '%s' "$audited_plugins" | tr ',' '\n' | awk -v n="$name" '$1==n {print $2; exit}')
     if [ -z "$was" ]; then
       added="${added:+$added, }$name $now"
     elif [ "$was" != "$now" ]; then
       changed="${changed:+$changed, }$name $was -> $now"
     fi
-  done
+  done <<EOF
+$pairs
+EOF
   [ -n "$changed" ] && add "plugins changed: $changed - re-scan for superseded classes"
   [ -n "$added" ] && add "plugins NEW since audit: $added - never scanned"
 fi

@@ -67,38 +67,27 @@ try {
 
     # Plugin drift — ANY plugin, not a named list. A plugin installed after the last
     # audit can ship superseded instruction classes just as easily as an updated one.
+    # Read from installed_plugins.json, not the cache dirs: an uninstall leaves its cache
+    # dir behind, so the old directory scan reported removed plugins as installed (A69).
     try {
-        $cache = Join-Path $HOME '.claude\plugins\cache'
-        if (Test-Path $cache) {
+        $manifest = Join-Path $HOME '.claude\plugins\installed_plugins.json'
+        if (Test-Path $manifest) {
             $was = @{}
             # Version token may be a git hash or the literal 'unknown', not just a semver
             foreach ($m in [regex]::Matches($auditedPlugins, '([A-Za-z0-9_.-]+)\s+([A-Za-z0-9][0-9A-Za-z.\-]*)')) {
                 $was[$m.Groups[1].Value] = $m.Groups[2].Value
             }
             $changed = @(); $added = @()
-            foreach ($pd in Get-ChildItem $cache -Directory -ErrorAction SilentlyContinue) {
-                # temp_git_* is an in-flight clone, not an installed plugin
-                if ($pd.Name -like 'temp_git_*') { continue }
-                foreach ($plug in Get-ChildItem $pd.FullName -Directory -ErrorAction SilentlyContinue) {
-                    # Prefer a version dir. A plugin installed from a git ref has ONLY a
-                    # hash dir, and skipping those made live plugins invisible to drift
-                    # detection entirely (context7, frontend-design — found 2026-08-15).
-                    # Fall back to the newest hash dir and track the hash as the version.
-                    $dirs = Get-ChildItem $plug.FullName -Directory -ErrorAction SilentlyContinue
-                    $now = ($dirs | Where-Object { $_.Name -match '^\d+\.\d+' } |
-                            Sort-Object { try { [version]($_.Name -replace '[^0-9.].*$','') } catch { [version]'0.0.0' } } |
-                            Select-Object -Last 1).Name
-                    if (-not $now) {
-                        # Hash-shaped (or literally 'unknown') dirs only — a plugin checked out
-                        # FLAT has ordinary subdirs (src, tests, skills) that would each read as
-                        # a phantom plugin
-                        $now = ($dirs | Where-Object { $_.Name -match '^([0-9a-f]{7,40}|unknown)$' } |
-                                Sort-Object LastWriteTime | Select-Object -Last 1).Name
-                    }
-                    if (-not $now) { continue }
-                    if (-not $was.ContainsKey($plug.Name)) { $added += "$($plug.Name) $now" }
-                    elseif ($was[$plug.Name] -ne $now)     { $changed += "$($plug.Name) $($was[$plug.Name]) -> $now" }
-                }
+            $installed = (Get-Content $manifest -Raw | ConvertFrom-Json).plugins
+            foreach ($p in $installed.PSObject.Properties) {
+                $name = ($p.Name -split '@')[0]
+                $entry = @($p.Value)[0]
+                # A plugin installed from a git ref may carry no semver: track its short sha
+                $now = if ($entry.version -and $entry.version -ne 'unknown') { $entry.version }
+                       elseif ($entry.gitCommitSha) { $entry.gitCommitSha.Substring(0, 12) }
+                       else { 'unknown' }
+                if (-not $was.ContainsKey($name)) { $added += "$name $now" }
+                elseif ($was[$name] -ne $now)     { $changed += "$name $($was[$name]) -> $now" }
             }
             if ($changed.Count) { $reasons += "plugins changed: $($changed -join ', ') - re-scan for superseded classes" }
             if ($added.Count)   { $reasons += "plugins NEW since audit: $($added -join ', ') - never scanned" }
