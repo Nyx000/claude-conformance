@@ -24,7 +24,7 @@ Every URL in the ledger's Source manifest, in one parallel block. **Fetch, do no
 
 Anything you skip gets marked *not fetched* on that row of the manifest, with the date. A silently skipped source reads as coverage.
 
-**Then search the docs site for the model's name** — `prompting-claude-<model>`, `<model> migration guide` — before trusting the manifest as complete. The manifest only knows pages that existed last pass. Anthropic published a Fable 5 prompting page without linking it from the Fable announcement, and this ledger ran Opus 5 doctrine on Fable for twelve days (2026-08-14 → 08-26) because the 08-14 pass checked the announcement and inferred absence. The best-practices page front-loads a section per model that has its own guide; it is the cheapest place to look.
+**Then search the docs site for the model's name** — `prompting-claude-<model>`, `<model> migration guide` — before trusting the manifest as complete. The manifest only knows pages that existed last pass. Anthropic published a Fable 5 prompting page without linking it from the Fable announcement, and this ledger ran Opus 5 doctrine on Fable for twelve days (2026-08-14 → 08-26) because the 08-14 pass checked the announcement and inferred absence. The best-practices page front-loads a section per model that has its own guide; it is the cheapest place to look. Also scan `claude.dev/blog` and `claude.com/resources/articles` for posts since the last pass: the July 2026 context-engineering post, which explains what Claude Code's own prompt dropped, went unread for three months because no model page links it.
 
 ### 3. Enumerate the local surface
 
@@ -74,6 +74,8 @@ Also run it on a community signal that a model behaves differently than expected
 ## The goal is to need this less
 
 Most of the first pass was **removing scaffolding**, not adding rules: mandatory verification, standing review gates, delegate-by-default. All of it was written to compensate for models that under-delivered, and all of it had become harmful. That removal is a one-time crossing, not recurring work.
+
+Anthropic now says the same: it cut Claude Code's own system prompt by over 80% for Claude 5 generation models with no measurable loss, and its prompt audit flags rules "added for an earlier model" as making agents slower or more rigid (claude.dev context-engineering post, 2026-07-24; single-loop article, 2026-10-22). Claude Code's `/doctor` carries that audit for skills and CLAUDE.md files; run it on a full pass and rule on what it reports.
 
 So judge this skill by whether the doctrine block **shrinks**. Every rule in it is compensation for a specific model's behavior, and compensation is a liability that has to be re-checked forever. A rule you can delete is worth more than a rule you can justify.
 
