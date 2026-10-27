@@ -75,7 +75,7 @@ Also run it on a community signal that a model behaves differently than expected
 
 Most of the first pass was **removing scaffolding**, not adding rules: mandatory verification, standing review gates, delegate-by-default. All of it was written to compensate for models that under-delivered, and all of it had become harmful. That removal is a one-time crossing, not recurring work.
 
-Anthropic now says the same: it cut Claude Code's own system prompt by over 80% for Claude 5 generation models with no measurable loss, and its prompt audit flags rules "added for an earlier model" as making agents slower or more rigid (claude.dev context-engineering post, 2026-07-24; single-loop article, 2026-10-22). Claude Code's `/doctor` carries that audit for skills and CLAUDE.md files; run it on a full pass and rule on what it reports.
+Anthropic now says the same: it cut Claude Code's own system prompt by over 80% for Claude 5 generation models with no measurable loss, and its prompt audit flags rules "added for an earlier model" as making agents slower or more rigid (claude.dev context-engineering post, 2026-07-24; single-loop article, 2026-10-22). Claude Code's `/doctor` carries that audit for skills and CLAUDE.md files; on a full pass, ask the user to run it (a slash command is theirs to type) and rule on what it reports.
 
 So judge this skill by whether the doctrine block **shrinks**. Every rule in it is compensation for a specific model's behavior, and compensation is a liability that has to be re-checked forever. A rule you can delete is worth more than a rule you can justify.
 
