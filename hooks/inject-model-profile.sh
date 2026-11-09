@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # SessionStart / PostModelSwitch hook: inject the conformance doctrine for the model
 # actually in use. Resolves the model (hook stdin JSON `model` or `to_model` field, else
-# ANTHROPIC_MODEL, else settings.json), then prints the first model-profiles/*.md whose
-# first-line `<!-- match: <regex> -->` matches it.
+# the parent process's `--model` flag, else ANTHROPIC_MODEL, else settings.json), then
+# prints the body of the first model-profiles/*.md whose first-line
+# `<!-- match: <regex> -->` matches it.
 # stdout reaches session context on both SessionStart and PostModelSwitch (the hooks docs
 # name PostModelSwitch as one of the few events where plain-text stdout becomes context),
 # so the printed profile IS the doctrine injection either way.
@@ -34,6 +35,13 @@ model=$(printf '%s' "$stdin" | sed -n 's/.*"model" *: *"\([^"]*\)".*/\1/p' | hea
 if [ -z "$model" ]; then
   model=$(printf '%s' "$stdin" | sed -n 's/.*"to_model" *: *"\([^"]*\)".*/\1/p' | head -1)
 fi
+# Headless `claude -p` sends no "model" in the SessionStart payload (measured 2026-11-09,
+# Claude Code 2.1.321), so `claude -p --model X` fell through to the pinned model's
+# doctrine. The flag outranks ANTHROPIC_MODEL in Claude Code, so it is read first here.
+if [ -z "$model" ] && [ -n "${CLAUDE_PID:-}" ]; then
+  model=$(ps -o args= -p "$CLAUDE_PID" 2>/dev/null | sed -n 's/.* --model[= ]\{1,\}"\{0,1\}\([^ "]*\).*/\1/p' | head -1)
+  if [ -n "$model" ]; then model_source="the --model flag"; fi
+fi
 # A run-time override (`claude --model X`, or an exported ANTHROPIC_MODEL) never
 # touches settings.json. Resolving from settings alone therefore injected the PINNED
 # model's doctrine into an overridden session — a silently-applied WRONG profile,
@@ -61,7 +69,11 @@ for f in "$dir"/*.md; do
       base="$(basename "$f" .md)"
       echo "<!-- resolved from $model_source \"$model\": the session payload carried no model, so model-profiles/$base.md follows. If the session banner names another model, apply that model's profile instead and flag it -->"
     fi
-    cat "$f"
+    # Claude Code replaces hook stdout over 10,000 characters with a 2,000-character
+    # preview, so the leading comment lines (match regex, provenance: maintainer
+    # metadata) are not printed; one short line names the file instead.
+    echo "<!-- profile: $(basename "$f") -->"
+    awk '!body && (/^<!--.*-->[[:space:]]*$/ || /^[[:space:]]*$/) { next } { body = 1; print }' "$f"
     exit 0
   fi
 done

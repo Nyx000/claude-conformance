@@ -38,6 +38,18 @@ try {
 # would happily hand back an object and stringify it later, so the two ports resolved
 # different values for the same payload. Accept a string or nothing.
 if ($model -isnot [string]) { $model = $null }
+# Headless `claude -p` sends no `model` in the SessionStart payload (measured 2026-11-09,
+# Claude Code 2.1.321), so `claude -p --model X` fell through to the pinned model's
+# doctrine. The flag outranks ANTHROPIC_MODEL in Claude Code, so it is read first here.
+if (-not $model -and $env:CLAUDE_PID) {
+    try {
+        $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId=$([int]$env:CLAUDE_PID)" -ErrorAction Stop).CommandLine
+        if ($cmd -match '\s--model[=\s]+"?([^\s"]+)') {
+            $model = $Matches[1]
+            $modelSource = 'the --model flag'
+        }
+    } catch {}
+}
 # A run-time override (`claude --model X`, or ANTHROPIC_MODEL) never touches
 # settings.json. Resolving from settings alone injected the PINNED model's doctrine into
 # an overridden session — the silently-applied wrong profile the header says cannot
@@ -71,7 +83,11 @@ foreach ($f in Get-ChildItem $dir -Filter '*.md' | Sort-Object { $_.Name.ToLower
             if ($modelSource -ne 'payload') {
                 "<!-- resolved from $modelSource `"$model`": the session payload carried no model, so model-profiles/$($f.BaseName).md follows. If the session banner names another model, apply that model's profile instead and flag it -->"
             }
-            [IO.File]::ReadAllText($f.FullName)
+            # Claude Code replaces hook stdout over 10,000 characters with a 2,000-character
+            # preview, so the leading comment lines (match regex, provenance: maintainer
+            # metadata) are not printed; one short line names the file instead.
+            "<!-- profile: $($f.Name) -->"
+            [IO.File]::ReadAllText($f.FullName) -replace '\A(?:<!--.*?-->\s*)+', ''
             exit 0
         }
     }

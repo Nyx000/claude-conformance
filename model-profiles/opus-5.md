@@ -20,6 +20,7 @@ Detector: `python3 ~/.claude/skills/anthropic-conformance/scripts/scan-supersede
 | **D** | Re-check instructions — "double-check your answer", "re-verify before responding" | Nothing. Opus 5 self-corrects; these compound and cost tokens |
 | **E** | Mandatory-invocation thresholds and ceremony — "1% chance means you MUST invoke", "before ANY response", two-document rituals for small tasks | Invoke a skill when the task is one it covers. Don't invoke a process skill for work already scoped. A skill check never gates a clarifying question. **LOCAL extension** — Anthropic states no rule here; this is our inference from the scope guidance, and it is marked so it can be argued with |
 | **F** | Fixed-template padding in deliverables — required Bottom Line / Key Principles / Real-World Impact sections | Match length to what the task needs. Cover the substance, skip the boilerplate |
+| **G** | Instructions to write out, echo or "show" internal reasoning as response text (added 2026-11-09 from the Opus 5 page) | Nothing. Such prompts "might be declined with the `reasoning_extraction` refusal category". Read thinking blocks if visibility is needed |
 
 Two standing notes. **Scope and correction narration** are already supplied by the Claude Code system prompt on Opus 5 — do not restate them here, that is the same compounding mistake in the other direction. And a skill you *do* invoke, you then follow: this supersedes specific instruction classes, not the idea of skills.
 
