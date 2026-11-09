@@ -54,7 +54,7 @@ python3 ~/.claude/skills/anthropic-conformance/scripts/scan-superseded.py
 
 ## Status and honest scoping
 
-Five profiles, each derived from Anthropic's prompting page for its model and matched by an anchored regex, so a model with no profile gets a nudge rather than a neighbour's doctrine:
+Six profiles, each derived from Anthropic's prompting page for its model and matched by an anchored regex, so a model with no profile gets a nudge rather than a neighbour's doctrine:
 
 | Profile | Matches | Source |
 |---|---|---|
@@ -62,9 +62,10 @@ Five profiles, each derived from Anthropic's prompting page for its model and ma
 | `sonnet-5-5.md` | `claude-sonnet-5-5` and the bare `sonnet` / `sonnet[1m]` aliases, which Claude Code resolves to Sonnet 5.5 | Prompting Claude Sonnet 5.5, on top of the Sonnet 5 page |
 | `opus-5-5.md` | `claude-opus-5-5` and the bare `opus` / `opus[1m]` / `opusplan` aliases, which Claude Code resolves to Opus 5.5 | Prompting Claude Opus 5.5, on top of the Opus 5 page it says still applies |
 | `opus-5.md` | an explicit `claude-opus-5` id only | Prompting Claude Opus 5 |
-| `fable-5.md` | Fable and Mythos 5 and their point releases | Prompting Claude Fable 5, with a 5.1 delta |
+| `fable-5-2.md` | `claude-fable-5-2`, `claude-mythos-5-2` and the bare `fable` alias, which Claude Code resolves to Fable 5.2 | Prompting Claude Fable 5.2; standalone, nothing inherited from the 5/5.1 profile |
+| `fable-5.md` | Fable and Mythos 5 and 5.1 by explicit id | Prompting Claude Fable 5, with a 5.1 delta |
 
-The profiles differ where the vendor pages do: Fable's guidance says to use subagents frequently and recommends fresh-context verifiers on long runs, while the Opus pages say to keep delegation to large independent tracks.
+The profiles differ where the vendor pages do: the Fable 5 and 5.1 guidance says to use subagents frequently, the Fable 5.2 page says to review standing instructions to delegate because subagents can be a large share of a session's cost, and the Opus pages say to keep delegation to large independent tracks. A point release gets its own derivation: the Fable 5 profile matched 5.2 by regex for a day and injected guidance the 5.2 page reverses.
 
 The simplest version of this idea is a grep for "verify" and "double-check" followed by deleting what you find. The scanner is a nicer, testable, classified version of that grep, not a different idea. The parts that are genuinely additive: the class taxonomy with per-class source lines, the three-verdict ledger, version-gated overrides, and the model-matched injection that survives compaction.
 
