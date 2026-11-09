@@ -32,12 +32,12 @@ Derived from Anthropic's guidance for Claude Fable 5.2 (audited 2026-11-09). Led
 
 **Claude Code mechanics that are specific to 5.2.**
 
-- *Advisor.* A Fable 5.2 main thread accepts only a Fable 5.2 advisor; a lower advisor is silently not attached. Each advisor call re-reads the whole conversation uncached at Fable rates. Subagents inherit the configured advisor.
+- *Advisor.* A Fable 5.2 main thread accepts only a Fable 5.2 advisor; a lower advisor is silently not attached. Each advisor call re-reads the whole conversation uncached at Fable rates. Subagents inherit the configured advisor. The advisor tool has no effort field, so the advisor's effort cannot be set from settings.
 - *Leaving 5.2 mid-conversation loses its reasoning.* No other model reads 5.2 thinking blocks, so a `/model` switch or a classifier fallback continues without them. After a fallback the session stays on the fallback model (Opus 4.8 for a cyber flag, Opus 5 for a bio flag) until `/model` is run.
 - *Refusal categories:* `cyber`, `bio`, `frontier_llm` (work that could help develop competing AI models; model-training projects are the likely surface), `reasoning_extraction`, `general_harms`. Benign security and life-sciences work can trigger the first two; that is routing, not an account flag.
 - *Subagents.* A fork runs on the session's model, so on a 5.2 main thread a fork is a Fable agent. Check which model every other subagent defaults to.
 
-**Model choice.** Anthropic's ordering is unchanged: start most work on Opus 5.5, and move to Fable 5.2 for demanding reasoning, long-horizon agentic work, leading many subagents, long unattended runs, or when Opus at higher effort still falls short. Fable 5.2 costs $8/$40 per million tokens against Opus 5.5's $4/$20. Which tier the main thread runs on is the user's routing table, not this profile.
+**Model choice.** Anthropic's ordering is unchanged: start most work on Opus 5.5, and use Fable 5.2 "for demanding reasoning and long-horizon agentic work, or when your evals on Claude Opus 5.5 at higher effort still fall short". Fable 5.2 costs $8/$40 per million tokens against Opus 5.5's $4/$20. Which tier the main thread runs on is the user's routing table, not this profile.
 
 **Precedence that makes it work:** user instructions (this file) outrank skills, which outrank default behavior. No plugin needs to cooperate.
 

@@ -27,6 +27,8 @@ Three pieces:
 | E | Mandatory-invocation thresholds and ceremony | Local extension, marked arguable: Anthropic states no rule here |
 | F | Fixed-template padding in deliverables | "match length to what the task needs; do not pad" |
 | G | Instructions to reproduce internal reasoning in the response | Fable 5 and Opus 5.5: such prompts "can be declined with the `reasoning_extraction` category" |
+| H | Instructions to think less ("answer directly without deliberating") | Fable 5.2: such a line "didn't stop the model from thinking at `medium` and above"; lower the effort level instead. Not in the scanner yet |
+| I | Unscoped absolute cautions that pile up in memory, notes and instruction files | Fable 5.2: "delete the cautions whose reason no longer holds, and rewrite absolute rules so that they state their scope and reason". Not in the scanner yet |
 
 **`hooks/inject-model-profile.{ps1,sh}`** is a SessionStart hook that resolves the running model and prints the matching doctrine from `model-profiles/` into session context. It fires on startup, resume, clear, and compact, so the doctrine survives compaction. An unrecognized model gets a one-line "derive a profile" nudge rather than silently applied wrong rules.
 
