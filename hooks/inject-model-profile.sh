@@ -39,7 +39,8 @@ fi
 # Claude Code 2.1.321), so `claude -p --model X` fell through to the pinned model's
 # doctrine. The flag outranks ANTHROPIC_MODEL in Claude Code, so it is read first here.
 if [ -z "$model" ] && [ -n "${CLAUDE_PID:-}" ]; then
-  model=$(ps -o args= -p "$CLAUDE_PID" 2>/dev/null | sed -n 's/.* --model[= ]\{1,\}"\{0,1\}\([^ "]*\).*/\1/p' | head -1)
+  # awk's match() is leftmost, like the ps1 port's -match; a greedy sed took the LAST one.
+  model=$(ps -o args= -p "$CLAUDE_PID" 2>/dev/null | awk 'match($0, / --model[= ]+"?[^ "]+/) { s = substr($0, RSTART, RLENGTH); sub(/^ --model[= ]+"?/, "", s); print s; exit }')
   if [ -n "$model" ]; then model_source="the --model flag"; fi
 fi
 # A run-time override (`claude --model X`, or an exported ANTHROPIC_MODEL) never
