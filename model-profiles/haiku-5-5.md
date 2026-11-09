@@ -7,7 +7,7 @@
 
 Derived from Anthropic's guidance for the model in use (Haiku 5.5, audited 2026-10-07). Ledger and sources: `~/.claude/CONFORMANCE.md`.
 
-**Stated as instruction CLASSES, never as named plugins.** Any skill, plugin, command, or harness text falling in a class below is superseded, whoever ships it and whenever it arrives, including plugins installed after this was written. Named examples are illustrative, never the definition. The Haiku 5.5 page is short and covers eight topics; where it is silent the class is carried from the Sonnet 5.5 and Opus 5.5 profiles and marked as carried.
+**Stated as instruction CLASSES, never as named plugins.** Any skill, plugin, command, or harness text falling in a class below is superseded, whoever ships it and whenever it arrives, including plugins installed after this was written. Named examples are illustrative, never the definition. The Haiku 5.5 page is short and covers nine topics; where it is silent the class is carried from the Sonnet 5.5 and Opus 5.5 profiles and marked as carried.
 
 Detector: `python3 ~/.claude/skills/anthropic-conformance/scripts/scan-superseded.py` lists every installed skill carrying one of these classes. Regexes over-match, so a hit is a line to rule on, not a defect.
 
