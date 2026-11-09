@@ -187,15 +187,13 @@ def scan(home):
             hits, seen = [], set()
             for c in CLASSES:
                 for rx in c["rx"]:
-                    m = rx.search(text)
-                    if not m:
-                        continue
-                    line_no = text.count("\n", 0, m.start()) + 1
-                    if (c["id"], line_no) in seen:
-                        continue
-                    seen.add((c["id"], line_no))
-                    hits.append({"class": c["id"], "name": c["name"], "line": line_no,
-                                 "text": lines[line_no - 1].strip()[:150]})
+                    for m in rx.finditer(text):
+                        line_no = text.count("\n", 0, m.start()) + 1
+                        if (c["id"], line_no) in seen:
+                            continue
+                        seen.add((c["id"], line_no))
+                        hits.append({"class": c["id"], "name": c["name"], "line": line_no,
+                                     "text": lines[line_no - 1].strip()[:150]})
             rec["hits"] = hits
             if rec["kind"] == "plugin":
                 rec["enabled"] = None if enabled is None else enabled.get(rec["plugin"], False)
